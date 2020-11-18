@@ -6,6 +6,13 @@ use std::fs::File;
 use std::io::Read;
 use std::str::from_utf8;
 
+const OLMC_COUNT: usize = 8;
+const SYN_ADDR:   usize = 2704;
+const AC0_ADDR:   usize = 2705;
+const XOR_ADDR:   usize = 2560;
+const AC1_ADDR:   usize = 2632;
+
+
 fn GAL20V8(jed: JEDECFile) {
     info!("Disassembling GAL20V8 fuse array");
 
@@ -13,20 +20,18 @@ fn GAL20V8(jed: JEDECFile) {
 
     if f.len() != 2706 {
         error!("Incorrect fuse count (found {}, expected 2706)", f.len());
+        return;
     }
 
-    let syn = f[2704];
-    let ac0 = f[2705];
+    let syn = f[SYN_ADDR];
+    let ac0 = f[AC0_ADDR];
 
-    let mut xor = vec![];
-    let mut ac1 = vec![];
-    for i in 0..8 {
-        xor.push(f[2560+i]);
-        ac1.push(f[2632+i]);
-    }
+    let xor = &f[XOR_ADDR..XOR_ADDR+OLMC_COUNT];
+    let ac1 = &f[AC1_ADDR..AC1_ADDR+OLMC_COUNT];
 
     debug!("SYN = {}, AC0 = {}", syn, ac0);
 
+    // [GAL20V8 datasheet pages 5,7,9]
     let mode = match (syn, ac0) {
         (false, true)  => "Registered",
         (true,  true)  => "Complex",
@@ -36,9 +41,19 @@ fn GAL20V8(jed: JEDECFile) {
 
     info!("{} mode", mode);
 
+    if mode != "Simple" {
+        error!("{} mode not supported", mode);
+        return;
+    }
+
     debug!("XOR = {:?}", xor);
     debug!("AC1 = {:?}", ac1);
 
+    // List of pin numbers connected to each pair of columns.
+    //
+    // For each pin, there is one column with the non-inverted input and
+    // one with the inverted input in the fuse array.
+    // [GAL20V8 datasheet page 10]
     let column_connections = [
         2,  1,
         3,  23,
@@ -62,6 +77,8 @@ fn GAL20V8(jed: JEDECFile) {
         }
     };
 
+    // List of OLMC pins (listed top to bottom).
+    // [GAL20V8 datasheet page 10]
     let olmc_pins = [
         22, 21, 20, 19, 18, 17, 16, 15,
     ];
@@ -75,21 +92,24 @@ fn GAL20V8(jed: JEDECFile) {
         }
     };
 
-    let olmc_count    = 8;
     let rows_per_olmc = 8;
     let row_width     = 40;
-    for olmc in 0..olmc_count {
+    for olmc in 0..OLMC_COUNT {
         let mut olmc_eqn = vec![];
         for i in 0..rows_per_olmc {
             let base = (olmc * rows_per_olmc + i) * row_width;
             let row = &f[base..base+row_width];
 
-            // If all gates enabled, skip the row
+            // Unused rows (usually?) have all fuses cleared.
+            // That means that all columns connect to the row, but it ulimately
+            // evaluates to false as it ANDs the non-inverted & inverted input
+            // from every pin. So we skip the row to tidy up the output.
             if !row.iter().fold(false, |a, b| a || *b) {
                 continue;
             }
 
-            // Build equation from symbols corresponding to cleared fuses
+            // For each column, include the corresponding symbol if the fuse
+            // is cleared.
             let eqn: Vec<String> = row.iter()
                 .enumerate()
                 .filter_map(
@@ -98,6 +118,8 @@ fn GAL20V8(jed: JEDECFile) {
                         true => None
                     })
                 .collect();
+
+            // Finally AND all the signals
             olmc_eqn.push(format!("{}", eqn.join(" * ")));
         }
 
