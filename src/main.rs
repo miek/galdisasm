@@ -85,10 +85,13 @@ fn GAL20V8(jed: JEDECFile) {
 
     let olmc_to_symbol = |olmc: usize| {
         let letter = olmc_pins[olmc] + 0x40;
+        // XOR=0 defines Active Low Output.
+        // XOR=1 defines Active High Output.
+        // [GAL20V8 datasheet page 9]
         if xor[olmc] {
-            String::from(from_utf8(&[0x2F, letter]).unwrap())
-        } else {
             String::from(from_utf8(&[letter]).unwrap())
+        } else {
+            String::from(from_utf8(&['/' as u8, letter]).unwrap())
         }
     };
 
@@ -125,7 +128,7 @@ fn GAL20V8(jed: JEDECFile) {
 
         // If configured as output
         if !ac1[olmc] {
-            println!("{} = {}", olmc_to_symbol(olmc), olmc_eqn.join("\n   + "));
+            println!("{} = {}", olmc_to_symbol(olmc), olmc_eqn.join("\n  + "));
         }
     }
 }
