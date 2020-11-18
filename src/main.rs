@@ -4,6 +4,7 @@ use log::{debug, error, info, warn};
 use simple_logger::SimpleLogger;
 use std::fs::File;
 use std::io::Read;
+use std::str::from_utf8;
 
 fn GAL20V8(jed: JEDECFile) {
     info!("Disassembling GAL20V8 fuse array");
@@ -38,18 +39,41 @@ fn GAL20V8(jed: JEDECFile) {
     debug!("XOR = {:?}", xor);
     debug!("AC1 = {:?}", ac1);
 
-    let row_symbols = [
-        "B", "/B", "A", "/A", // 2,  1
-        "C", "/C", "T", "/T", // 3,  23
-        "D", "/D", "S", "/S", // 4,  22
-        "E", "/E", "R", "/R", // 5,  21
-        "F", "/F", "Q", "/Q", // 6,  20
-        "G", "/G", "P", "/P", // 7,  17
-        "H", "/H", "O", "/O", // 8,  16
-        "I", "/I", "N", "/N", // 9,  15
-        "J", "/J", "M", "/M", // 10, 14
-        "K", "/K", "L", "/L", // 11, 13
+    let column_connections = [
+        2,  1,
+        3,  23,
+        4,  22,
+        5,  21,
+        6,  20,
+        7,  17,
+        8,  16,
+        9,  15,
+        10, 14,
+        11, 13,
     ];
+
+    let column_to_symbol = |col: u8| {
+        let pin = column_connections[(col/2) as usize];
+        let letter = pin + 0x40;
+        if col & 1 == 1 {
+            String::from(from_utf8(&[0x2F, letter]).unwrap())
+        } else {
+            String::from(from_utf8(&[letter]).unwrap())
+        }
+    };
+
+    let olmc_pins = [
+        22, 21, 20, 19, 18, 17, 16, 15,
+    ];
+
+    let olmc_to_symbol = |olmc: usize| {
+        let letter = olmc_pins[olmc] + 0x40;
+        if xor[olmc] {
+            String::from(from_utf8(&[0x2F, letter]).unwrap())
+        } else {
+            String::from(from_utf8(&[letter]).unwrap())
+        }
+    };
 
     let olmc_count    = 8;
     let rows_per_olmc = 8;
@@ -66,17 +90,21 @@ fn GAL20V8(jed: JEDECFile) {
             }
 
             // Build equation from symbols corresponding to cleared fuses
-            let eqn: Vec<&str> = row_symbols.iter()
-                .zip(row)
+            let eqn: Vec<String> = row.iter()
+                .enumerate()
                 .filter_map(
                     |(s, b)| match b {
-                        false => Some(*s),
+                        false => Some(column_to_symbol(s as u8)),
                         true => None
                     })
                 .collect();
-            olmc_eqn.push(format!("({})", eqn.join(" * ")));
+            olmc_eqn.push(format!("{}", eqn.join(" * ")));
         }
-        debug!("OLMC {} = {:?}", olmc, olmc_eqn.join(" + "));
+
+        // If configured as output
+        if !ac1[olmc] {
+            println!("{} = {}", olmc_to_symbol(olmc), olmc_eqn.join("\n   + "));
+        }
     }
 }
 
