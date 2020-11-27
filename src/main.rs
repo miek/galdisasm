@@ -107,7 +107,7 @@ fn GAL20V8(jed: JEDECFile) {
             // That means that all columns connect to the row, but it ulimately
             // evaluates to false as it ANDs the non-inverted & inverted input
             // from every pin. So we skip the row to tidy up the output.
-            if !row.iter().fold(false, |a, b| a || *b) {
+            if !row.iter().any(|&x| x) {
                 continue;
             }
 
