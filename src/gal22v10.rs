@@ -1,10 +1,11 @@
 use jedec::JEDECFile;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use std::str::from_utf8;
 
 const OLMC_COUNT:       usize = 10;
 const OLMC_CONFIG_ADDR: usize = 5808;
 
+#[allow(non_snake_case)]
 pub fn GAL22V10(jed: JEDECFile) {
     info!("Disassembling GAL20V8 fuse array");
 

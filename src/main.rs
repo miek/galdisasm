@@ -3,11 +3,9 @@ mod gal22v10;
 
 use clap::{Arg, App, arg_enum, value_t};
 use jedec::JEDECFile;
-use log::{debug, error, info, warn};
 use simple_logger::SimpleLogger;
 use std::fs::File;
 use std::io::Read;
-use std::str::from_utf8;
 
 use gal20v8::GAL20V8;
 use gal22v10::GAL22V10;

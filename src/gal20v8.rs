@@ -1,5 +1,5 @@
 use jedec::JEDECFile;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use std::str::from_utf8;
 
 const OLMC_COUNT: usize = 8;
@@ -8,6 +8,7 @@ const AC0_ADDR:   usize = 2705;
 const XOR_ADDR:   usize = 2560;
 const AC1_ADDR:   usize = 2632;
 
+#[allow(non_snake_case)]
 pub fn GAL20V8(jed: JEDECFile) {
     info!("Disassembling GAL20V8 fuse array");
 
