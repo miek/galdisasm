@@ -1,4 +1,5 @@
 mod gal20v8;
+mod gal22v10;
 
 use clap::{Arg, App};
 use jedec::JEDECFile;
@@ -9,6 +10,7 @@ use std::io::Read;
 use std::str::from_utf8;
 
 use gal20v8::GAL20V8;
+use gal22v10::GAL22V10;
 
 fn dis(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut file = File::open(path)?;
@@ -19,7 +21,7 @@ fn dis(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("Device: {:?}", jed.dev_name_str);
     //println!("{:?}", jed.f);
 
-    GAL20V8(jed);
+    GAL22V10(jed);
 
     Ok(())
 }

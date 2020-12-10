@@ -9,4 +9,4 @@ galdisasm disassembles JEDEC fuse array files for Generic Array Logic (GAL) devi
 Device   | Support status
 ---------| --------------
 GAL20V8  | Limited. Currently hardcoded to Simple Mode.
-GAL22V10 | Planned.
+GAL22V10 | Limited.
