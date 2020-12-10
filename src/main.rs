@@ -3,6 +3,7 @@ mod gal22v10;
 
 use clap::{Arg, App, arg_enum, value_t};
 use jedec::JEDECFile;
+use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::fs::File;
 use std::io::Read;
@@ -34,8 +35,6 @@ fn dis(device_type: Device, path: &str) -> Result<(), Box<dyn std::error::Error>
 }
 
 fn main() {
-    SimpleLogger::new().init().unwrap();
-
     let matches = App::new("galdisasm")
         .arg(Arg::with_name("device")
              .short("d")
@@ -45,7 +44,22 @@ fn main() {
              .required(true))
         .arg(Arg::with_name("jed_file")
              .required(true))
+        .arg(Arg::with_name("v")
+             .short("v")
+             .multiple(true)
+             .help("Sets the level of verbosity"))
         .get_matches();
+
+    let log_level = match matches.occurrences_of("v") {
+        0     => LevelFilter::Info,
+        1     => LevelFilter::Debug,
+        2 | _ => LevelFilter::Trace,
+    };
+
+    SimpleLogger::new()
+        .with_level(log_level)
+        .init()
+        .unwrap();
 
     let device_type = value_t!(matches, "device", Device).unwrap_or_else(|e| e.exit());
 
